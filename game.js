@@ -1,3 +1,4 @@
+import { MinesweeperAI } from "./ai.js";
 const HEIGHT = 8;
 const WIDTH = 8;
 const MINES = 8;
@@ -101,6 +102,7 @@ function handle_click(e) {
     else {
         if (!lost && !flags.includes(cell_s)) {
             make_move(cell)
+            AI.add_knowledge(cell);
         }
     }
     if (flags.length == MINES) {
@@ -109,7 +111,7 @@ function handle_click(e) {
 }
 
 function mark_mine(cell) {
-    cell_s = JSON.stringify(cell);
+    let cell_s = JSON.stringify(cell);
     if (!moves_made.includes(cell_s)) {
         if (!flags.includes(cell_s)) {
             flags.push(cell_s)
@@ -157,8 +159,8 @@ function end_game() {
     msg.style.color = color;
     msg.innerHTML = message;
 
-    for (i in mines) {
-        mine = eval(mines[i]);
+    for (let i in mines) {
+        let mine = eval(mines[i]);
         show_mine(mine);
     }
 }
@@ -201,172 +203,6 @@ function get_mines(cells) {
     return local_mines;
 }
 
-
-
-// THIS WILL BE ai.js at some point when I figure out modules
-class Sentence {
-    constructor(cells, count) {
-        this.cells = cells;
-        this.mines = [];
-        this.safes = [];
-        this.count = count;
-    }
-    known_mines() {
-        return this.mines;
-    }
-    known_safes() {
-        return this.safes;
-    }
-    mark_mine(cell) {
-        if (this.cells.includes(cell)) {
-            this.count--;
-            this.mines.push(cell);
-            let id = this.cells.indexOf(cell);
-            this.cells.splice(id, 1);
-        }
-    }
-    mark_safe(cell) {
-        if (this.cells.includes(cell)) {
-            this.safes.push(cell);
-            let id = this.cells.indexOf(cell);
-            this.cells.splice(id, 1);
-        }
-    }
-}
-
-class MinesweeperAI {
-    constructor(height, width) {
-        this.height = height;
-        this.width = width;
-        this.mines = [];
-        this.safes = [];
-        this.knowledge = [];
-    }
-    mark_mine(cell) {
-        this.mines.push(JSON.stringify(cell));
-        for (let i in this.knowledge) {
-            this.knowledge[i].mark_mine(JSON.stringify(cell));
-        }
-    }
-    mark_safe(cell) {
-        this.safes.push(JSON.stringify(cell));
-        for (let i in this.knowledge) {
-            this.knowledge[i].mark_safe(JSON.stringify(cell));
-        }
-    }
-    make_safe_move() {
-        let difference = this.safes.filter(x => moves_made.indexOf(x) === -1);
-        // console.log(`safes: ${this.safes}`);
-        // console.log(`moves: ${moves_made}`);
-        // console.log(`diff: ${difference}`);
-        if (difference.length == 0) {
-            return null;
-        } 
-        else {
-            let cell = difference.pop();
-            console.log(`AI making safe move ${cell}`)
-            cell = JSON.parse(cell);
-            // console.log(`making safe move ${cell}`);
-            return cell;
-        }
-    }
-    make_random_move() {
-        console.log("No safe moves available. Making random move");
-        while (true) {
-            let row = Math.floor(Math.random() * HEIGHT);
-            let col = Math.floor(Math.random() * WIDTH);
-            let cell = [row, col];
-            if (!moves_made.includes(JSON.stringify(cell))) {
-                return cell;
-            }
-        }
-    }
-    add_knowledge(move) {
-        let neighbors = make_move(move);
-        let local_mines = get_mines(neighbors);
-        moves_made.push(JSON.stringify(move));
-
-        // Going to remove the move from safes if it is in there
-        let id = this.safes.indexOf(move);
-        this.safes.splice(id, 1);
-        
-        // Difference should be neighbors, excluding anything marked safe OR moves made 
-        let difference = neighbors.filter(x => this.safes.indexOf(x) === -1);
-        difference = difference.filter(x => moves_made.indexOf(x) === -1);
-        
-        // This will include any mines already touching this cell
-        let marked_mines = difference.filter(x => this.mines.includes(x));
-
-        // remove from 'difference' any already identified mines, and reduce mine count
-        // This way we start the sentence with only the unknowns
-        if (marked_mines.length != 0) {
-            marked_mines.forEach(function(cell, id) {
-                let index = difference.indexOf(cell);
-                difference.splice(index, 1);
-                local_mines--;
-            });
-        }
-
-        // If we know there are no mines, mark all open neighbors as safe
-        let cells = [...difference];
-        if (local_mines == 0) {
-            cells.forEach((item) => {
-                // console.log(`item: ${item}`); 
-                let id = difference.indexOf(item);
-                difference.splice(id, 1);
-                this.mark_safe(JSON.parse(item));
-            }, this);
-        }
-
-        // console.log(`Safes: ${this.safes.length}: ${this.safes}`);
-        
-        // create the sentence if there are any unknowns left 
-        if (difference.length != 0) {
-            let s = new Sentence(difference, local_mines);
-            this.knowledge.push(s);
-            // console.log(s);
-        }
-
-        this.make_table();
-        let k_copy = [...this.knowledge];
-        k_copy.forEach( (item) => {
-            
-            let cells = [...item.cells];
-            let count = item.count;
-            // If cells remaining and item are equal, they're all mines
-            if (item.count == 0) {
-                cells.forEach( (item) => {
-                    this.mark_safe(JSON.parse(item));
-                });
-            }
-            if (cells.length == item.count) {
-                cells.forEach( (item) => {
-                    mark_mine(JSON.parse(item));
-                    this.mark_mine(JSON.parse(item));
-                }, this);
-            }
-        }, this);
-
-        let win = check_win();
-        if (win) {
-            end_game();
-        }
-    }
-
-    make_table() {
-        let html = '<table class="table">';
-        html += '<thead><th>Mines</th><th>Cells</th></thead>'
-        this.knowledge.forEach( (item, index) => {
-            let line = `<tr><td>${item.count}</td><td>${item.cells}</td></tr>`;
-            html += line;
-        });
-        html += '</table>';
-        let temp = document.getElementById('temp');
-        temp.innerHTML = html;
-    }
-}
-
-
 function check_win() {
     let counter = 0;
     if (flags.length == MINES) {
@@ -385,6 +221,8 @@ function check_win() {
 }
 
 function ai_move() {
+    if (check_win()) return;
+    if (lost) return;
     if (!lost) {
         let move = AI.make_safe_move();
         if (move == null) {
@@ -402,8 +240,8 @@ function ai_move() {
 
 
 function main() {
-    reset_btn = document.getElementById('reset');
-    ai_btn = document.getElementById('ai');
+    let reset_btn = document.getElementById('reset');
+    let ai_btn = document.getElementById('ai');
 
     // draw the board
     reset_btn.onclick = create_board;
@@ -412,3 +250,5 @@ function main() {
     
 }
 main(); 
+
+export { make_move, get_mines, check_win, mark_mine, end_game };
