@@ -53,19 +53,7 @@ function create_board() {
     for (let i = 0; i < MINES; i++) {
         let row = Math.floor(Math.random() * HEIGHT);
         let col = Math.floor(Math.random() * WIDTH);
-        let mine = JSON.stringify([row, col]);
-        while (true) {
-            if (mines.length == MINES) {
-                break;
-            }
-            if (mines.indexOf(mine) != -1) {
-                row = Math.floor(Math.random() * HEIGHT);
-                col = Math.floor(Math.random() * WIDTH);
-                mine = JSON.stringify([row, col]);
-                continue;
-            }
-            mines.push(mine);
-        }
+        mines.push(JSON.stringify([row, col]))
     }
 }
 
@@ -285,87 +273,77 @@ class MinesweeperAI {
         let neighbors = make_move(move);
         let local_mines = get_mines(neighbors);
         moves_made.push(JSON.stringify(move));
-
-        // Going to remove the move from safes if it is in there
-        let id = this.safes.indexOf(move);
-        this.safes.splice(id, 1);
-        
-        // Difference should be neighbors, excluding anything marked safe OR moves made 
-        let difference = neighbors.filter(x => this.safes.indexOf(x) === -1);
-        difference = difference.filter(x => moves_made.indexOf(x) === -1);
-        
-        // This will include any mines already touching this cell
-        let marked_mines = difference.filter(x => this.mines.includes(x));
-
-        // remove from 'difference' any already identified mines, and reduce mine count
-        // This way we start the sentence with only the unknowns
-        if (marked_mines.length != 0) {
-            marked_mines.forEach(function(cell, id) {
-                let index = difference.indexOf(cell);
-                difference.splice(index, 1);
-                local_mines--;
-            });
+        let diff1 = neighbors.filter(x => this.safes.indexOf(x) === -1);
+        let difference = diff1.filter(x => moves_made.indexOf(x) === -1);
+        // console.log(`difference: ${difference}`);
+        // console.log(difference);
+        if (local_mines == difference.length) {
+            for (let i in difference) {
+                if (!this.mines.includes(difference[i])) {
+                    mark_mine(JSON.parse(difference[i]));
+                    this.mark_mine(JSON.parse(difference[i]));
+                }
+            }
         }
-
-        // If we know there are no mines, mark all open neighbors as safe
-        let cells = [...difference];
-        if (local_mines == 0) {
-            cells.forEach((item) => {
-                // console.log(`item: ${item}`); 
-                let id = difference.indexOf(item);
-                difference.splice(id, 1);
-                this.mark_safe(JSON.parse(item));
-            }, this);
+        else if (local_mines == 0) {
+            for (let i in difference) {
+                // console.log(`safe: ${neighbors[i]}`);
+                let cell = difference[i];
+                if (!moves_made.includes(cell)) {
+                    this.mark_safe(JSON.parse(difference[i]));
+                }
+            }
         }
-
-        // console.log(`Safes: ${this.safes.length}: ${this.safes}`);
         
-        // create the sentence if there are any unknowns left 
-        if (difference.length != 0) {
+        // AI portion of knowledge
+        if (difference.length > 0) {
+            let diff = [...difference];
+            for (let i in diff) {
+                if (this.mines.includes(diff[i])) {
+                    difference.splice(i, 1);
+                    this.mark_mine(JSON.parse(diff[i]));
+                    local_mines--;
+                }
+            }
+
             let s = new Sentence(difference, local_mines);
             this.knowledge.push(s);
-            // console.log(s);
-        }
-
-        this.make_table();
-        let k_copy = [...this.knowledge];
-        k_copy.forEach( (item) => {
             
-            let cells = [...item.cells];
-            let count = item.count;
-            // If cells remaining and item are equal, they're all mines
-            if (item.count == 0) {
-                cells.forEach( (item) => {
-                    this.mark_safe(JSON.parse(item));
-                });
+            let know = [...this.knowledge];
+            for (let i = 0; i < know.length; i++) {
+                let cs = [...know[i].cells];
+                if (cs.length == 0) {
+                    this.knowledge.splice(i, 1);
+                }
+                else if (know[i].count == 0) {
+                        //this.mark_safe(JSON.parse(this.knowledge[i].cells[j]));
+                    for (let j = 0; j < cs.length; j++) {
+                        let cell_to_change = JSON.parse(cs[j]);
+                        if (!this.mines.includes(JSON.stringify(cell_to_change))) {
+                            if (!moves_made.includes(JSON.stringify(cell_to_change))) {
+                                this.mark_safe(cell_to_change);
+                            }
+                        }
+                    }
+                }
+                else if (cs.length == know[i].count) {
+                    for (let j in know[i].cells) {
+                        let cell_to_change = JSON.parse(cs[j]);
+                        if (!this.mines.includes(JSON.stringify(cell_to_change))) {
+                            // console.log(`marking mine ${cell_to_change}`);
+                            this.mark_mine(cell_to_change);
+                            mark_mine(cell_to_change);
+                        }
+                    }
+                }
             }
-            if (cells.length == item.count) {
-                cells.forEach( (item) => {
-                    mark_mine(JSON.parse(item));
-                    this.mark_mine(JSON.parse(item));
-                }, this);
-            }
-        }, this);
-
+        }
         let win = check_win();
         if (win) {
             end_game();
         }
     }
-
-    make_table() {
-        let html = '<table class="table">';
-        html += '<thead><th>Mines</th><th>Cells</th></thead>'
-        this.knowledge.forEach( (item, index) => {
-            let line = `<tr><td>${item.count}</td><td>${item.cells}</td></tr>`;
-            html += line;
-        });
-        html += '</table>';
-        let temp = document.getElementById('temp');
-        temp.innerHTML = html;
-    }
 }
-
 
 function check_win() {
     let counter = 0;
