@@ -137,7 +137,7 @@ class MinesweeperAI {
                         // console.log(`subsets: ${item.cells} x ${s.cells} = ${new_set}`);
                         new_count = Math.abs(item.count - s.count);
 
-                        console.log(`${item.count} x ${s.count} x ${new_count}`);
+                        // console.log(`${item.count} x ${s.count} x ${new_count}`);
                         let new_sentence = new Sentence(new_set, new_count);
                         this.knowledge.push(new_sentence);
                     }

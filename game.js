@@ -79,11 +79,12 @@ function handle_click(e) {
     let col = parseInt(id[1]);
     let cell = [row, col];
     let cell_s = JSON.stringify(cell);
+
     if (mines.includes(cell_s) && btn == 0) {
         lost = true;
         end_game();
     }
-    else if (btn == 2) {
+    else if ((btn == 2) || (btn == 0 && e.ctrlKey == true)) {
         if (!moves_made.includes(cell_s)) {
             if (!flags.includes(cell_s)) {
                 flags.push(cell_s)
