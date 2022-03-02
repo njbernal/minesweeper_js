@@ -94,7 +94,7 @@ function handle_click(e) {
                 board[cell[0]][cell[1]].style.backgroundPosition = 'center';
             }
             else {
-                index = flags.indexOf(cell_s);
+                let index = flags.indexOf(cell_s);
                 flags.splice(index, 1);
                 board[cell[0]][cell[1]].style.backgroundImage = '';
             }
