@@ -5,4 +5,4 @@
 
 <p>This is a work in progress, and I am learning as I do it.</p>
 
-<p>The game is plyable here: [njbernal.github.io/minesweeper_js](https://njbernal.github.io/minesweeper_js/)</p>
+<p>The game is plyable here: [njbernal.github.io/minesweeper_js](https://njbernal.github.io/minesweeper_js/) </p>
