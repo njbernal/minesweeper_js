@@ -18,6 +18,7 @@ let AI;
 function create_board() {
     canvas.innerHTML = "";
     msg.innerHTML = "";
+    msg.style.opacity = 0;
     board = [];
     lost = false;
     moves_made = [];
@@ -50,7 +51,7 @@ function create_board() {
         }
         board.push(row)
     }
-    
+
     for (let i = 0; i < MINES; i++) {
         let row = Math.floor(Math.random() * HEIGHT);
         let col = Math.floor(Math.random() * WIDTH);
@@ -141,13 +142,14 @@ function make_move(cell) {
 function end_game() {
     let color = "";
     let message = "";
+    let msg_color = '#fff'
     if (lost == true) {
         message = "YOU LOST";
         color = "#aa0000";
     }
     else {
         message = "YOU WON";
-        color = "#00aa00";
+        color = "#137135";
     }
     let div = document.createElement('div');
     div.className = 'cover';
@@ -157,8 +159,9 @@ function end_game() {
     div.style.backgroundColor = color;
     canvas.prepend(div);
 
-    msg.style.color = color;
+    msg.style.color = msg_color;
     msg.innerHTML = message;
+    msg.style.opacity = 1;
 
     for (let i in mines) {
         let mine = eval(mines[i]);
@@ -248,8 +251,8 @@ function main() {
     reset_btn.onclick = create_board;
     ai_btn.onclick = ai_move;
     create_board();
-    
+
 }
-main(); 
+main();
 
 export { make_move, get_mines, check_win, mark_mine, end_game };

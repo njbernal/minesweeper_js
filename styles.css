@@ -99,7 +99,13 @@ html {
 }
 
 #msg {
-    font-size: 30px;
+    position: absolute;
+    top: 50%;
+    font-size: 3em;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    border-radius: 10px;
     text-align: center;
     justify-content: center;
     color: black;
